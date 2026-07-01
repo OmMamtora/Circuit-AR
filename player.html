@@ -2,49 +2,236 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#080907">
-    <title>Circuit AR — Member Video</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <title>Circuit AR - True Image Tracking</title>
 
-    <link rel="stylesheet" href="css/ar.css">
+    <!-- 1. Include WebAR Libraries (A-Frame and MindAR) -->
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
+
+    <!-- Include your existing member data -->
     <script src="js/data.js"></script>
+
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        /* Hide the default A-Frame VR button */
+        .a-enter-vr { display: none !important; }
+
+        /* HTML UI Overlay - Sits perfectly on top of the AR Camera */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1000;
+            pointer-events: none; /* Let touches pass through to AR */
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            padding-bottom: env(safe-area-inset-bottom, 40px);
+        }
+
+        /* The floating bottom card from your screenshot */
+        .floating-card {
+            background: rgba(20, 20, 20, 0.85);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px 24px;
+            width: 80%;
+            max-width: 320px;
+            text-align: center;
+            pointer-events: auto; /* Make this clickable */
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+            opacity: 0; /* Hidden until image is found */
+            transform: translateY(20px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+
+        .floating-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .card-title {
+            color: #fff;
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0 0 12px 0;
+        }
+
+        .card-btn {
+            display: block;
+            background: linear-gradient(90deg, #ffd640, #ffb020);
+            color: #000;
+            text-decoration: none;
+            font-weight: 700;
+            padding: 12px 0;
+            border-radius: 30px;
+            font-size: 15px;
+            box-shadow: 0 4px 12px rgba(255, 214, 64, 0.3);
+        }
+
+        .card-btn:active {
+            transform: scale(0.96);
+        }
+
+        /* Start Screen (Required by iOS/Android to allow video autoplay) */
+        #start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 2000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            color: white;
+            font-family: sans-serif;
+        }
+
+        #start-btn {
+            background: #ffd640;
+            color: black;
+            border: none;
+            padding: 14px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        /* Top left back button */
+        .back-btn {
+            position: absolute;
+            top: env(safe-area-inset-top, 20px);
+            left: 20px;
+            color: #ffd640;
+            font-size: 24px;
+            text-decoration: none;
+            pointer-events: auto;
+            z-index: 1000;
+        }
+    </style>
 </head>
 <body>
-    <div class="ambient-grid" aria-hidden="true"></div>
 
-    <a href="index.html" class="ar-back-btn">← Scan again</a>
+    <!-- 1. Start Screen -->
+    <div id="start-screen">
+        <h2>Ready for AR?</h2>
+        <p>Scan the physical coaster</p>
+        <button id="start-btn">Start Camera</button>
+    </div>
 
-    <main class="player-page" id="player-page">
-        <div class="player-video-wrap">
-            <video
-                id="memberVideo"
-                class="player-video"
-                controls
-                autoplay
-                playsinline
-                preload="auto">
-            </video>
-            <button type="button" class="player-unmute-btn" id="unmuteBtn" hidden>🔇 Tap for sound</button>
+    <!-- Hamburger / Back Icon -->
+    <a href="index.html" class="back-btn">☰</a>
+
+    <!-- 2. UI Overlay (Floating Card at bottom) -->
+    <div id="ui-layer">
+        <div class="floating-card" id="floating-card">
+            <h3 class="card-title" id="ui-title">Book now</h3>
+            <a href="#" id="ui-btn" class="card-btn" target="_blank">Learn more</a>
         </div>
+    </div>
 
-        <p class="section-kicker" id="player-kicker">Circuit AR ⚡</p>
-        <h1 id="player-name">Member</h1>
-        <p class="ar-copy" id="player-intro"></p>
+    <!-- 3. A-Frame & MindAR Scene -->
+    <!-- Make sure to replace assets/targets.mind with your compiled file! -->
+    <a-scene 
+        mindar-image="imageTargetSrc: assets/targets.mind; autoStart: false;" 
+        color-space="sRGB" 
+        renderer="colorManagement: true, physicallyCorrectLights" 
+        vr-mode-ui="enabled: false" 
+        device-orientation-permission-ui="enabled: false">
+        
+        <!-- Video Asset Storage -->
+        <a-assets>
+            <video id="ar-video" src="assets/video/amit-ke-circuits-ar-promo.mp4" 
+                   preload="auto" loop crossorigin="anonymous" playsinline webkit-playsinline></video>
+        </a-assets>
 
-        <a id="visitBtn" class="button button-primary pulse" target="_blank" rel="noopener">
-            Visit Microsite →
-        </a>
-    </main>
+        <!-- The AR Camera -->
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-    <!-- Shown if the scanned id doesn't match anyone on the team -->
-    <!-- <section class="fallback-page" id="player-not-found" hidden>
-        <div class="fallback-icon">?</div>
-        <p class="section-kicker">Member Not Found</p>
-        <h1>We couldn't match<br><span>that coaster.</span></h1>
-        <p>The QR code didn't point to a known Circuit member. Try scanning again.</p>
-        <a href="index.html" class="button button-primary">← Scan Again</a>
-    </section> -->
+        <!-- The AR Target & What appears attached to it -->
+        <a-entity mindar-image-target="targetIndex: 0" id="ar-target">
+            <!-- 
+              width and height dictate the aspect ratio of the video in 3D space. 
+              1 and 0.5625 is exactly a 16:9 ratio.
+            -->
+            <a-video src="#ar-video" position="0 0 0" width="1" height="0.5625" rotation="0 0 0"></a-video>
+        </a-entity>
 
-    <script src="js/player.js" defer></script>
+    </a-scene>
+
+    <!-- 4. Logic Script -->
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const params = new URLSearchParams(location.search);
+            const id = params.get("id");
+            
+            // Get member data if it exists in the URL
+            const member = id && typeof window.getCircuitMember === "function" 
+                ? window.getCircuitMember(id) 
+                : null;
+
+            const titleEl = document.getElementById("ui-title");
+            const btnEl = document.getElementById("ui-btn");
+            const startScreen = document.getElementById("start-screen");
+            const startBtn = document.getElementById("start-btn");
+            const videoEl = document.getElementById("ar-video");
+            const sceneEl = document.querySelector("a-scene");
+            const targetEl = document.getElementById("ar-target");
+            const floatingCard = document.getElementById("floating-card");
+
+            // Populate the floating UI dynamically based on scanned member
+            if (member) {
+                titleEl.textContent = `Visit ${member.name}`;
+                btnEl.href = `https://amit123.onrender.com/member.html?id=${encodeURIComponent(member.id)}`;
+            } else {
+                titleEl.textContent = "Circuit AR";
+                btnEl.href = "https://amit123.onrender.com";
+            }
+
+            // Mobile Video Unlock Trick
+            // Browsers block video playing until the user physically taps the screen
+            startBtn.addEventListener("click", () => {
+                // Play and immediately pause to 'unlock' the video engine
+                videoEl.play();
+                videoEl.pause();
+                
+                // Hide start screen and trigger the AR camera engine
+                startScreen.style.display = "none";
+                sceneEl.systems["mindar-image-system"].start(); 
+            });
+
+            // When the camera FINDS the coaster in the real world
+            targetEl.addEventListener("targetFound", event => {
+                videoEl.play(); // Play the video on the coaster
+                floatingCard.classList.add("visible"); // Slide up the UI at the bottom
+            });
+
+            // When the camera LOSES the coaster (user looks away)
+            targetEl.addEventListener("targetLost", event => {
+                videoEl.pause(); // Pause video to save battery
+                floatingCard.classList.remove("visible"); // Hide the UI
+            });
+        });
+    </script>
 </body>
 </html>

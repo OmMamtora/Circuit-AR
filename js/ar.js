@@ -217,8 +217,29 @@ document.addEventListener("DOMContentLoaded", () => {
     const scanningOverlay = document.getElementById("scanning-overlay");
     const foundLayer = document.getElementById("found-layer");
     const foundLabel = document.getElementById("found-label");
+    const backBtn = document.getElementById("ar-back-btn");
 
     let html5QrCode = null;
+    let isScanning = false;
+
+    // A scanned coaster's QR encodes the member's microsite URL, e.g.
+    // ".../member.html?id=prachi&source=qr". We don't jump straight to that
+    // microsite — instead we pull the "id" out of it and open our own local
+    // player.html?id=... first, which plays that member's intro video and
+    // then offers a button to visit the actual microsite.
+    function extractMemberId(decodedText) {
+        try {
+            const u = new URL(decodedText);
+            const id = u.searchParams.get("id");
+            if (id) return id;
+        } catch (e) {
+            // Not a full URL — maybe the QR just encodes a bare id.
+            if (/^[a-z0-9_-]+$/i.test(decodedText.trim())) {
+                return decodedText.trim();
+            }
+        }
+        return null;
+    }
 
     function onScanSuccess(decodedText) {
 
@@ -226,13 +247,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
         foundLayer.classList.add("visible");
 
-        foundLabel.innerHTML = "QR Detected";
+        const memberId = extractMemberId(decodedText);
+        const member = memberId ? window.getCircuitMember(memberId) : null;
+
+        foundLabel.innerHTML = member ? `${member.name} found!` : "QR Detected";
 
         html5QrCode.stop().then(() => {
 
+            isScanning = false;
+
             setTimeout(() => {
 
-                window.location.href = decodedText;
+                if (member) {
+                    // Known member — open our local video player first.
+                    window.location.href = `player.html?id=${encodeURIComponent(member.id)}`;
+                } else {
+                    // Unrecognised id or non-member QR — fall back to
+                    // whatever the QR encoded so we never dead-end.
+                    window.location.href = decodedText;
+                }
 
             }, CONFIG.REDIRECT_DELAY_MS);
 
@@ -243,6 +276,9 @@ document.addEventListener("DOMContentLoaded", () => {
     function onScanFailure() {}
 
     function startScanner() {
+
+        scanningOverlay.style.display = "flex";
+        foundLayer.classList.remove("visible");
 
         html5QrCode = new Html5Qrcode("qr-reader");
 
@@ -259,8 +295,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
             onScanFailure
 
-        );
+        ).then(() => {
+            isScanning = true;
+        }).catch(() => {
+            isScanning = false;
+        });
 
+    }
+
+    function stopScanner() {
+        if (!html5QrCode || !isScanning) return Promise.resolve();
+        isScanning = false;
+        return html5QrCode.stop().then(() => html5QrCode.clear()).catch(() => {});
     }
 
     activateBtn.addEventListener("click", () => {
@@ -272,5 +318,14 @@ document.addEventListener("DOMContentLoaded", () => {
         startScanner();
 
     });
+
+    if (backBtn) {
+        backBtn.addEventListener("click", () => {
+            stopScanner().finally(() => {
+                arStage.hidden = true;
+                activateScreen.hidden = false;
+            });
+        });
+    }
 
 });

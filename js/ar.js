@@ -1,3 +1,146 @@
+// // // // ─────────────────────────────────────────────────────────────────────────
+// // // // Circuit AR — QR scanner
+// // // //
+// // // // Job: scan a QR code → pull the member "id" out of the decoded value →
+// // // // open our own player.html?id=... (which plays that member's intro video
+// // // // and links out to their microsite). If the id can't be matched to anyone
+// // // // on the team, we fall back to opening whatever the QR encoded directly,
+// // // // so a scan never dead-ends.
+// // // // ─────────────────────────────────────────────────────────────────────────
+// // // const CONFIG = {
+// // //     REDIRECT_DELAY_MS: 800,
+// // //     OPEN_MODE: "same"
+// // // };
+
+// // // document.addEventListener("DOMContentLoaded", () => {
+
+// // //     const activateBtn = document.getElementById("ar-activate-btn");
+// // //     const activateScreen = document.getElementById("ar-activate");
+// // //     const arStage = document.getElementById("ar-stage");
+// // //     const scanningOverlay = document.getElementById("scanning-overlay");
+// // //     const foundLayer = document.getElementById("found-layer");
+// // //     const foundLabel = document.getElementById("found-label");
+// // //     const backBtn = document.getElementById("ar-back-btn");
+
+// // //     let html5QrCode = null;
+// // //     let isScanning = false;
+
+// // //     // A scanned coaster's QR encodes the member's microsite URL, e.g.
+// // //     // ".../member.html?id=prachi&source=qr". We don't jump straight to that
+// // //     // microsite — instead we pull the "id" out of it and open our own local
+// // //     // player.html?id=... first, which plays that member's intro video and
+// // //     // then offers a button to visit the actual microsite.
+// // //     function extractMemberId(decodedText) {
+// // //         try {
+// // //             const u = new URL(decodedText);
+// // //             const id = u.searchParams.get("id");
+// // //             if (id) return id;
+// // //         } catch (e) {
+// // //             // Not a full URL — maybe the QR just encodes a bare id.
+// // //             if (/^[a-z0-9_-]+$/i.test(decodedText.trim())) {
+// // //                 return decodedText.trim();
+// // //             }
+// // //         }
+// // //         return null;
+// // //     }
+
+// // //     function onScanSuccess(decodedText) {
+
+// // //         scanningOverlay.style.display = "none";
+
+// // //         foundLayer.classList.add("visible");
+
+// // //         // Defensive: if data.js failed to load, or getCircuitMember isn't
+// // //         // defined for any reason, we must NOT let that break the redirect.
+// // //         let member = null;
+// // //         try {
+// // //             const memberId = extractMemberId(decodedText);
+// // //             if (memberId && typeof window.getCircuitMember === "function") {
+// // //                 member = window.getCircuitMember(memberId) || null;
+// // //             }
+// // //         } catch (e) {
+// // //             member = null;
+// // //         }
+
+// // //         foundLabel.innerHTML = member ? `${member.name} found!` : "Coaster found — opening…";
+
+// // //         const goToDestination = () => {
+// // //             isScanning = false;
+// // //             if (member) {
+// // //                 window.location.href = `player.html?id=${encodeURIComponent(member.id)}`;
+// // //             } else {
+// // //                 window.location.href = decodedText;
+// // //             }
+// // //         };
+
+// // //         // Race the camera's stop() against a short timeout so a stuck
+// // //         // camera teardown can never prevent the redirect from happening.
+// // //         Promise.race([
+// // //             html5QrCode.stop().catch(() => {}),
+// // //             new Promise(resolve => setTimeout(resolve, 600))
+// // //         ]).then(() => {
+// // //             setTimeout(goToDestination, CONFIG.REDIRECT_DELAY_MS);
+// // //         });
+
+// // //     }
+
+// // //     function onScanFailure() {}
+
+// // //     function startScanner() {
+
+// // //         scanningOverlay.style.display = "flex";
+// // //         foundLayer.classList.remove("visible");
+
+// // //         html5QrCode = new Html5Qrcode("qr-reader");
+
+// // //         html5QrCode.start(
+
+// // //             { facingMode: "environment" },
+
+// // //             {
+// // //                 fps: 10,
+// // //                 qrbox: 250
+// // //             },
+
+// // //             onScanSuccess,
+
+// // //             onScanFailure
+
+// // //         ).then(() => {
+// // //             isScanning = true;
+// // //         }).catch(() => {
+// // //             isScanning = false;
+// // //         });
+
+// // //     }
+
+// // //     function stopScanner() {
+// // //         if (!html5QrCode || !isScanning) return Promise.resolve();
+// // //         isScanning = false;
+// // //         return html5QrCode.stop().then(() => html5QrCode.clear()).catch(() => {});
+// // //     }
+
+// // //     activateBtn.addEventListener("click", () => {
+
+// // //         activateScreen.hidden = true;
+
+// // //         arStage.hidden = false;
+
+// // //         startScanner();
+
+// // //     });
+
+// // //     if (backBtn) {
+// // //         backBtn.addEventListener("click", () => {
+// // //             stopScanner().finally(() => {
+// // //                 arStage.hidden = true;
+// // //                 activateScreen.hidden = false;
+// // //             });
+// // //         });
+// // //     }
+
+// // // });
+
 // // // ─────────────────────────────────────────────────────────────────────────
 // // // Circuit AR — QR scanner
 // // //
@@ -21,9 +164,20 @@
 // //     const foundLayer = document.getElementById("found-layer");
 // //     const foundLabel = document.getElementById("found-label");
 // //     const backBtn = document.getElementById("ar-back-btn");
+// //     const statusText = document.getElementById("ar-status");
+// //     const fallbackScreen = document.getElementById("ar-fallback");
+// //     const fallbackMessage = document.getElementById("fallback-message");
+// //     const retryBtn = document.getElementById("ar-retry-btn");
 
 // //     let html5QrCode = null;
 // //     let isScanning = false;
+
+// //     function showFallback(message) {
+// //         arStage.hidden = true;
+// //         activateScreen.hidden = true;
+// //         if (fallbackMessage) fallbackMessage.textContent = message;
+// //         if (fallbackScreen) fallbackScreen.hidden = false;
+// //     }
 
 // //     // A scanned coaster's QR encodes the member's microsite URL, e.g.
 // //     // ".../member.html?id=prachi&source=qr". We don't jump straight to that
@@ -86,21 +240,69 @@
 
 // //     function onScanFailure() {}
 
+// //     function cameraErrorMessage(err) {
+// //         const name = (err && (err.name || err.toString())) || "";
+// //         if (!window.isSecureContext) {
+// //             return "Camera needs a secure (https://) page to work. Open this site over HTTPS, not a plain IP/http address.";
+// //         }
+// //         if (/NotAllowedError|Permission/i.test(name)) {
+// //             return "Camera permission was denied. Allow camera access for this site in your browser settings, then try again.";
+// //         }
+// //         if (/NotFoundError|OverconstrainedError/i.test(name)) {
+// //             return "No usable camera was found on this device.";
+// //         }
+// //         if (/NotReadableError/i.test(name)) {
+// //             return "The camera is already in use by another app. Close other camera apps/tabs and try again.";
+// //         }
+// //         return "Camera or scanner didn't load. Check permissions and your connection, then try again.";
+// //     }
+
 // //     function startScanner() {
 
 // //         scanningOverlay.style.display = "flex";
 // //         foundLayer.classList.remove("visible");
 
-// //         html5QrCode = new Html5Qrcode("qr-reader");
+// //         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+// //             showFallback("This browser doesn't support camera access. Try Chrome or Safari.");
+// //             return;
+// //         }
+// //         if (typeof Html5Qrcode === "undefined") {
+// //             showFallback("The scanner library failed to load. Check your connection and try again.");
+// //             return;
+// //         }
+
+// //         html5QrCode = new Html5Qrcode("qr-reader", {
+// //             // Narrowing to QR-only speeds up every decode pass.
+// //             formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ],
+// //             // Uses the browser's native BarcodeDetector when available
+// //             // (Chrome/Android) — meaningfully faster & more reliable than
+// //             // the pure-JS decoder, especially for QR codes shown on a
+// //             // screen rather than printed.
+// //             experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+// //             verbose: false
+// //         });
+
+// //         const config = {
+// //             fps: 15,
+// //             // Bigger, adaptive scan box — much easier to line up a QR code
+// //             // against, especially when scanning one off another screen.
+// //             qrbox: (viewfinderWidth, viewfinderHeight) => {
+// //                 const size = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.7);
+// //                 return { width: size, height: size };
+// //             },
+// //             // Continuous autofocus helps a lot when scanning a code shown
+// //             // on a nearby screen rather than a static printed surface.
+// //             videoConstraints: {
+// //                 facingMode: "environment",
+// //                 advanced: [{ focusMode: "continuous" }]
+// //             }
+// //         };
 
 // //         html5QrCode.start(
 
 // //             { facingMode: "environment" },
 
-// //             {
-// //                 fps: 10,
-// //                 qrbox: 250
-// //             },
+// //             config,
 
 // //             onScanSuccess,
 
@@ -108,8 +310,9 @@
 
 // //         ).then(() => {
 // //             isScanning = true;
-// //         }).catch(() => {
+// //         }).catch((err) => {
 // //             isScanning = false;
+// //             showFallback(cameraErrorMessage(err));
 // //         });
 
 // //     }
@@ -122,6 +325,7 @@
 
 // //     activateBtn.addEventListener("click", () => {
 
+// //         if (statusText) statusText.textContent = "Requesting camera access…";
 // //         activateScreen.hidden = true;
 
 // //         arStage.hidden = false;
@@ -139,203 +343,196 @@
 // //         });
 // //     }
 
+// //     if (retryBtn) {
+// //         retryBtn.addEventListener("click", () => {
+// //             if (fallbackScreen) fallbackScreen.hidden = true;
+// //             activateScreen.hidden = false;
+// //         });
+// //     }
+
 // // });
 
 // // ─────────────────────────────────────────────────────────────────────────
-// // Circuit AR — QR scanner
+// // Circuit AR — standalone QR-scanner build
 // //
-// // Job: scan a QR code → pull the member "id" out of the decoded value →
-// // open our own player.html?id=... (which plays that member's intro video
-// // and links out to their microsite). If the id can't be matched to anyone
-// // on the team, we fall back to opening whatever the QR encoded directly,
-// // so a scan never dead-ends.
+// // This page does NOT know about Amit, Prachi, or anyone else. Its only job
+// // is: scan a QR code → read the URL it contains → go there. Each physical
+// // coaster's QR already encodes the destination (e.g.
+// // ".../member.html?id=prachi&source=qr" on the Amit Ke Circuits site), so
+// // this scanner works for all members automatically with zero hardcoded
+// // mapping. That's what keeps it genuinely standalone.
 // // ─────────────────────────────────────────────────────────────────────────
+
 // const CONFIG = {
-//     REDIRECT_DELAY_MS: 800,
-//     OPEN_MODE: "same"
+//     // How long to show the "found" checkmark before redirecting.
+//     REDIRECT_DELAY_MS: 900,
+
+//     // If set, only URLs on these hostnames will be auto-redirected to —
+//     // anything else is shown but NOT auto-opened, as a safety guard against
+//     // a damaged/spoofed QR code. Leave empty [] to allow any https URL.
+//     // Example: ["amitkecircuits.example.com"]
+//     ALLOWED_HOSTS: [],
+
+//     // "same" = navigate this tab to the scanned URL (feels like walking
+//     // through a portal). "new" = open a new tab and keep the scanner open.
+//     OPEN_MODE: "same",
 // };
 
 // document.addEventListener("DOMContentLoaded", () => {
-
 //     const activateBtn = document.getElementById("ar-activate-btn");
 //     const activateScreen = document.getElementById("ar-activate");
 //     const arStage = document.getElementById("ar-stage");
-//     const scanningOverlay = document.getElementById("scanning-overlay");
-//     const foundLayer = document.getElementById("found-layer");
-//     const foundLabel = document.getElementById("found-label");
-//     const backBtn = document.getElementById("ar-back-btn");
-//     const statusText = document.getElementById("ar-status");
 //     const fallbackScreen = document.getElementById("ar-fallback");
 //     const fallbackMessage = document.getElementById("fallback-message");
 //     const retryBtn = document.getElementById("ar-retry-btn");
+//     const backBtn = document.getElementById("ar-back-btn");
+//     const statusText = document.getElementById("ar-status");
+//     const scanningOverlay = document.getElementById("scanning-overlay");
+//     const foundLayer = document.getElementById("found-layer");
+//     const foundLabel = document.getElementById("found-label");
 
 //     let html5QrCode = null;
-//     let isScanning = false;
+//     let stopping = false;
 
-//     function showFallback(message) {
-//         arStage.hidden = true;
-//         activateScreen.hidden = true;
-//         if (fallbackMessage) fallbackMessage.textContent = message;
-//         if (fallbackScreen) fallbackScreen.hidden = false;
+//     function track(name, details) {
+//         console.log("[circuit-ar]", name, details || {});
 //     }
 
-//     // A scanned coaster's QR encodes the member's microsite URL, e.g.
-//     // ".../member.html?id=prachi&source=qr". We don't jump straight to that
-//     // microsite — instead we pull the "id" out of it and open our own local
-//     // player.html?id=... first, which plays that member's intro video and
-//     // then offers a button to visit the actual microsite.
-//     function extractMemberId(decodedText) {
-//         try {
-//             const u = new URL(decodedText);
-//             const id = u.searchParams.get("id");
-//             if (id) return id;
-//         } catch (e) {
-//             // Not a full URL — maybe the QR just encodes a bare id.
-//             if (/^[a-z0-9_-]+$/i.test(decodedText.trim())) {
-//                 return decodedText.trim();
-//             }
-//         }
-//         return null;
-//     }
-
-//     function onScanSuccess(decodedText) {
-
-//         scanningOverlay.style.display = "none";
-
-//         foundLayer.classList.add("visible");
-
-//         // Defensive: if data.js failed to load, or getCircuitMember isn't
-//         // defined for any reason, we must NOT let that break the redirect.
-//         let member = null;
-//         try {
-//             const memberId = extractMemberId(decodedText);
-//             if (memberId && typeof window.getCircuitMember === "function") {
-//                 member = window.getCircuitMember(memberId) || null;
-//             }
-//         } catch (e) {
-//             member = null;
-//         }
-
-//         foundLabel.innerHTML = member ? `${member.name} found!` : "Coaster found — opening…";
-
-//         const goToDestination = () => {
-//             isScanning = false;
-//             if (member) {
-//                 window.location.href = `player.html?id=${encodeURIComponent(member.id)}`;
-//             } else {
-//                 window.location.href = decodedText;
-//             }
-//         };
-
-//         // Race the camera's stop() against a short timeout so a stuck
-//         // camera teardown can never prevent the redirect from happening.
-//         Promise.race([
-//             html5QrCode.stop().catch(() => {}),
-//             new Promise(resolve => setTimeout(resolve, 600))
-//         ]).then(() => {
-//             setTimeout(goToDestination, CONFIG.REDIRECT_DELAY_MS);
+//     function showFallback(reason, message) {
+//         track("ar_fallback_shown", { reason });
+//         fallbackMessage.textContent = message || "Camera or scanner didn't load. Try again.";
+//         stopScanner().finally(() => {
+//             arStage.hidden = true;
+//             activateScreen.hidden = true;
+//             fallbackScreen.hidden = false;
 //         });
-
-//     }
-
-//     function onScanFailure() {}
-
-//     function cameraErrorMessage(err) {
-//         const name = (err && (err.name || err.toString())) || "";
-//         if (!window.isSecureContext) {
-//             return "Camera needs a secure (https://) page to work. Open this site over HTTPS, not a plain IP/http address.";
-//         }
-//         if (/NotAllowedError|Permission/i.test(name)) {
-//             return "Camera permission was denied. Allow camera access for this site in your browser settings, then try again.";
-//         }
-//         if (/NotFoundError|OverconstrainedError/i.test(name)) {
-//             return "No usable camera was found on this device.";
-//         }
-//         if (/NotReadableError/i.test(name)) {
-//             return "The camera is already in use by another app. Close other camera apps/tabs and try again.";
-//         }
-//         return "Camera or scanner didn't load. Check permissions and your connection, then try again.";
-//     }
-
-//     function startScanner() {
-
-//         scanningOverlay.style.display = "flex";
-//         foundLayer.classList.remove("visible");
-
-//         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-//             showFallback("This browser doesn't support camera access. Try Chrome or Safari.");
-//             return;
-//         }
-//         if (typeof Html5Qrcode === "undefined") {
-//             showFallback("The scanner library failed to load. Check your connection and try again.");
-//             return;
-//         }
-
-//         html5QrCode = new Html5Qrcode("qr-reader", {
-//             // Narrowing to QR-only speeds up every decode pass.
-//             formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ],
-//             // Uses the browser's native BarcodeDetector when available
-//             // (Chrome/Android) — meaningfully faster & more reliable than
-//             // the pure-JS decoder, especially for QR codes shown on a
-//             // screen rather than printed.
-//             experimentalFeatures: { useBarCodeDetectorIfSupported: true },
-//             verbose: false
-//         });
-
-//         const config = {
-//             fps: 15,
-//             // Bigger, adaptive scan box — much easier to line up a QR code
-//             // against, especially when scanning one off another screen.
-//             qrbox: (viewfinderWidth, viewfinderHeight) => {
-//                 const size = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.7);
-//                 return { width: size, height: size };
-//             },
-//             // Continuous autofocus helps a lot when scanning a code shown
-//             // on a nearby screen rather than a static printed surface.
-//             videoConstraints: {
-//                 facingMode: "environment",
-//                 advanced: [{ focusMode: "continuous" }]
-//             }
-//         };
-
-//         html5QrCode.start(
-
-//             { facingMode: "environment" },
-
-//             config,
-
-//             onScanSuccess,
-
-//             onScanFailure
-
-//         ).then(() => {
-//             isScanning = true;
-//         }).catch((err) => {
-//             isScanning = false;
-//             showFallback(cameraErrorMessage(err));
-//         });
-
 //     }
 
 //     function stopScanner() {
-//         if (!html5QrCode || !isScanning) return Promise.resolve();
-//         isScanning = false;
-//         return html5QrCode.stop().then(() => html5QrCode.clear()).catch(() => {});
+//         if (!html5QrCode || stopping) return Promise.resolve();
+//         stopping = true;
+//         return html5QrCode.stop().then(() => {
+//             html5QrCode.clear();
+//         }).catch(() => {}).finally(() => { stopping = false; });
 //     }
 
-//     activateBtn.addEventListener("click", () => {
+//     // Extracts a human-friendly name from a scanned member URL, if possible,
+//     // purely for the on-screen "X found!" message — has no effect on where
+//     // we navigate.
+//     function guessNameFromUrl(url) {
+//         try {
+//             const u = new URL(url);
+//             const id = u.searchParams.get("id");
+//             if (id) return id.charAt(0).toUpperCase() + id.slice(1);
+//         } catch (e) { /* not a valid URL, ignore */ }
+//         return null;
+//     }
 
-//         if (statusText) statusText.textContent = "Requesting camera access…";
-//         activateScreen.hidden = true;
+//     function isUrlAllowed(url) {
+//         if (!CONFIG.ALLOWED_HOSTS.length) return true;
+//         try {
+//             const u = new URL(url);
+//             return CONFIG.ALLOWED_HOSTS.includes(u.hostname);
+//         } catch (e) {
+//             return false;
+//         }
+//     }
 
-//         arStage.hidden = false;
+//     function onScanSuccess(decodedText) {
+//         if (stopping) return; // ignore duplicate fires while we're shutting down
+//         track("ar_qr_scanned", { value: decodedText });
 
-//         startScanner();
+//         let isUrl = false;
+//         try { new URL(decodedText); isUrl = true; } catch (e) { isUrl = false; }
 
-//     });
+//         const name = isUrl ? guessNameFromUrl(decodedText) : null;
+//         foundLabel.textContent = name
+//             ? `${name} found — opening profile…`
+//             : (isUrl ? "Coaster found — opening…" : "QR scanned.");
+
+//         scanningOverlay.style.display = "none";
+//         foundLayer.classList.add("visible");
+
+//         stopScanner().then(() => {
+//             if (!isUrl) {
+//                 // Not a URL — nothing to navigate to. Show the raw value so
+//                 // it's at least visible/debuggable instead of failing silently.
+//                 foundLabel.textContent = "Scanned: " + decodedText;
+//                 track("ar_qr_not_a_url", { value: decodedText });
+//                 return;
+//             }
+//             if (!isUrlAllowed(decodedText)) {
+//                 foundLabel.textContent = "This QR points outside the allowed site — not opening automatically.";
+//                 track("ar_qr_blocked_host", { value: decodedText });
+//                 return;
+//             }
+//             track("ar_qr_redirect", { url: decodedText });
+//             setTimeout(() => {
+//                 if (CONFIG.OPEN_MODE === "new") {
+//                     window.open(decodedText, "_blank", "noopener");
+//                     // Reset back to the activate screen so they can scan again.
+//                     foundLayer.classList.remove("visible");
+//                     arStage.hidden = true;
+//                     activateScreen.hidden = false;
+//                 } else {
+//                     window.location.href = decodedText;
+//                 }
+//             }, CONFIG.REDIRECT_DELAY_MS);
+//         });
+//     }
+
+//     function onScanFailure() {
+//         // Fires continuously while no QR is in view — expected, ignore.
+//     }
+
+//     function startScanner() {
+//         foundLayer.classList.remove("visible");
+//         scanningOverlay.style.display = "flex";
+
+//         html5QrCode = new Html5Qrcode("qr-reader", { verbose: false });
+//         const config = {
+//             fps: 10,
+//             qrbox: (viewfinderWidth, viewfinderHeight) => {
+//                 const size = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.65);
+//                 return { width: size, height: size };
+//             },
+//             aspectRatio: window.innerHeight / window.innerWidth,
+//         };
+
+//         html5QrCode.start(
+//             { facingMode: "environment" },
+//             config,
+//             onScanSuccess,
+//             onScanFailure
+//         ).catch(err => {
+//             track("ar_camera_denied", { error: String(err) });
+//             showFallback("camera_denied", "Camera access was denied or unavailable. Allow camera permission and try again.");
+//         });
+//     }
+
+//     if (activateBtn) {
+//         activateBtn.addEventListener("click", () => {
+//             track("ar_activate_tap");
+//             statusText.innerText = "Requesting camera access…";
+
+//             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+//                 showFallback("getUserMedia_unsupported", "Your browser doesn't support camera access. Try Chrome or Safari.");
+//                 return;
+//             }
+//             if (typeof Html5Qrcode === "undefined") {
+//                 showFallback("library_load_failed", "The scanner library failed to load. Check your connection and try again.");
+//                 return;
+//             }
+
+//             activateScreen.hidden = true;
+//             arStage.hidden = false;
+//             startScanner();
+//         });
+//     }
 
 //     if (backBtn) {
 //         backBtn.addEventListener("click", () => {
+//             track("ar_scan_cancelled");
 //             stopScanner().finally(() => {
 //                 arStage.hidden = true;
 //                 activateScreen.hidden = false;
@@ -345,36 +542,22 @@
 
 //     if (retryBtn) {
 //         retryBtn.addEventListener("click", () => {
-//             if (fallbackScreen) fallbackScreen.hidden = true;
+//             fallbackScreen.hidden = true;
 //             activateScreen.hidden = false;
 //         });
 //     }
-
 // });
 
 // ─────────────────────────────────────────────────────────────────────────
-// Circuit AR — standalone QR-scanner build
-//
-// This page does NOT know about Amit, Prachi, or anyone else. Its only job
-// is: scan a QR code → read the URL it contains → go there. Each physical
-// coaster's QR already encodes the destination (e.g.
-// ".../member.html?id=prachi&source=qr" on the Amit Ke Circuits site), so
-// this scanner works for all members automatically with zero hardcoded
-// mapping. That's what keeps it genuinely standalone.
+// Circuit AR — QR scanner
+// 
+// Job: scan a QR code → extract the member "id" → redirect to our local
+// player.html?id=<memberId> to show their video first.
 // ─────────────────────────────────────────────────────────────────────────
 
 const CONFIG = {
     // How long to show the "found" checkmark before redirecting.
     REDIRECT_DELAY_MS: 900,
-
-    // If set, only URLs on these hostnames will be auto-redirected to —
-    // anything else is shown but NOT auto-opened, as a safety guard against
-    // a damaged/spoofed QR code. Leave empty [] to allow any https URL.
-    // Example: ["amitkecircuits.example.com"]
-    ALLOWED_HOSTS: [],
-
-    // "same" = navigate this tab to the scanned URL (feels like walking
-    // through a portal). "new" = open a new tab and keep the scanner open.
     OPEN_MODE: "same",
 };
 
@@ -400,11 +583,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function showFallback(reason, message) {
         track("ar_fallback_shown", { reason });
-        fallbackMessage.textContent = message || "Camera or scanner didn't load. Try again.";
+        if (fallbackMessage) fallbackMessage.textContent = message || "Camera or scanner didn't load. Try again.";
         stopScanner().finally(() => {
-            arStage.hidden = true;
-            activateScreen.hidden = true;
-            fallbackScreen.hidden = false;
+            if (arStage) arStage.hidden = true;
+            if (activateScreen) activateScreen.hidden = true;
+            if (fallbackScreen) fallbackScreen.hidden = false;
         });
     }
 
@@ -416,68 +599,81 @@ document.addEventListener("DOMContentLoaded", () => {
         }).catch(() => {}).finally(() => { stopping = false; });
     }
 
-    // Extracts a human-friendly name from a scanned member URL, if possible,
-    // purely for the on-screen "X found!" message — has no effect on where
-    // we navigate.
-    function guessNameFromUrl(url) {
+    // Pull the "id" parameter out of the decoded QR URL
+    function extractMemberId(decodedText) {
         try {
-            const u = new URL(url);
+            const u = new URL(decodedText);
             const id = u.searchParams.get("id");
-            if (id) return id.charAt(0).toUpperCase() + id.slice(1);
-        } catch (e) { /* not a valid URL, ignore */ }
+            if (id) return id;
+        } catch (e) {
+            // Not a full URL — maybe the QR just encodes a bare id.
+            if (/^[a-z0-9_-]+$/i.test(decodedText.trim())) {
+                return decodedText.trim();
+            }
+        }
         return null;
     }
 
-    function isUrlAllowed(url) {
-        if (!CONFIG.ALLOWED_HOSTS.length) return true;
-        try {
-            const u = new URL(url);
-            return CONFIG.ALLOWED_HOSTS.includes(u.hostname);
-        } catch (e) {
-            return false;
-        }
-    }
-
     function onScanSuccess(decodedText) {
-        if (stopping) return; // ignore duplicate fires while we're shutting down
+        if (stopping) return;
         track("ar_qr_scanned", { value: decodedText });
 
-        let isUrl = false;
-        try { new URL(decodedText); isUrl = true; } catch (e) { isUrl = false; }
+        const memberId = extractMemberId(decodedText);
+        let memberName = null;
+        
+        // Try to look up the exact name if data.js is loaded
+        if (memberId && typeof window.getCircuitMember === "function") {
+            const member = window.getCircuitMember(memberId);
+            if (member) memberName = member.name;
+        }
+        
+        // Fallback to capitalizing the ID if we have one
+        if (!memberName && memberId) {
+            memberName = memberId.charAt(0).toUpperCase() + memberId.slice(1);
+        }
 
-        const name = isUrl ? guessNameFromUrl(decodedText) : null;
-        foundLabel.textContent = name
-            ? `${name} found — opening profile…`
-            : (isUrl ? "Coaster found — opening…" : "QR scanned.");
+        if (memberName) {
+            foundLabel.textContent = `${memberName} found — opening profile…`;
+        } else {
+            // If it's a completely invalid QR that doesn't even contain an ID
+            let isUrl = false;
+            try { new URL(decodedText); isUrl = true; } catch (e) {}
+            foundLabel.textContent = isUrl ? "Coaster found — opening…" : ("Scanned: " + decodedText);
+        }
 
         scanningOverlay.style.display = "none";
         foundLayer.classList.add("visible");
 
         stopScanner().then(() => {
-            if (!isUrl) {
-                // Not a URL — nothing to navigate to. Show the raw value so
-                // it's at least visible/debuggable instead of failing silently.
-                foundLabel.textContent = "Scanned: " + decodedText;
-                track("ar_qr_not_a_url", { value: decodedText });
-                return;
-            }
-            if (!isUrlAllowed(decodedText)) {
-                foundLabel.textContent = "This QR points outside the allowed site — not opening automatically.";
-                track("ar_qr_blocked_host", { value: decodedText });
-                return;
-            }
-            track("ar_qr_redirect", { url: decodedText });
-            setTimeout(() => {
-                if (CONFIG.OPEN_MODE === "new") {
-                    window.open(decodedText, "_blank", "noopener");
-                    // Reset back to the activate screen so they can scan again.
-                    foundLayer.classList.remove("visible");
-                    arStage.hidden = true;
-                    activateScreen.hidden = false;
+            // If we successfully pulled an ID, go to player.html
+            if (memberId) {
+                track("ar_qr_redirect", { id: memberId });
+                setTimeout(() => {
+                    const playerUrl = `player.html?id=${encodeURIComponent(memberId)}`;
+                    if (CONFIG.OPEN_MODE === "new") {
+                        window.open(playerUrl, "_blank", "noopener");
+                        foundLayer.classList.remove("visible");
+                        arStage.hidden = true;
+                        activateScreen.hidden = false;
+                    } else {
+                        window.location.href = playerUrl;
+                    }
+                }, CONFIG.REDIRECT_DELAY_MS);
+            } 
+            // Fallback for valid URLs that don't have an ID (don't dead-end)
+            else {
+                let isUrl = false;
+                try { new URL(decodedText); isUrl = true; } catch (e) {}
+                
+                if (isUrl) {
+                    track("ar_qr_redirect_fallback", { url: decodedText });
+                    setTimeout(() => {
+                        window.location.href = decodedText;
+                    }, CONFIG.REDIRECT_DELAY_MS);
                 } else {
-                    window.location.href = decodedText;
+                    track("ar_qr_not_a_url", { value: decodedText });
                 }
-            }, CONFIG.REDIRECT_DELAY_MS);
+            }
         });
     }
 
@@ -513,7 +709,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (activateBtn) {
         activateBtn.addEventListener("click", () => {
             track("ar_activate_tap");
-            statusText.innerText = "Requesting camera access…";
+            if (statusText) statusText.innerText = "Requesting camera access…";
 
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                 showFallback("getUserMedia_unsupported", "Your browser doesn't support camera access. Try Chrome or Safari.");
@@ -524,8 +720,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            activateScreen.hidden = true;
-            arStage.hidden = false;
+            if (activateScreen) activateScreen.hidden = true;
+            if (arStage) arStage.hidden = false;
             startScanner();
         });
     }
@@ -534,16 +730,16 @@ document.addEventListener("DOMContentLoaded", () => {
         backBtn.addEventListener("click", () => {
             track("ar_scan_cancelled");
             stopScanner().finally(() => {
-                arStage.hidden = true;
-                activateScreen.hidden = false;
+                if (arStage) arStage.hidden = true;
+                if (activateScreen) activateScreen.hidden = false;
             });
         });
     }
 
     if (retryBtn) {
         retryBtn.addEventListener("click", () => {
-            fallbackScreen.hidden = true;
-            activateScreen.hidden = false;
+            if (fallbackScreen) fallbackScreen.hidden = true;
+            if (activateScreen) activateScreen.hidden = false;
         });
     }
 });

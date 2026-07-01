@@ -190,3 +190,13 @@ window.propIcon = function (type) {
   };
   return icons[type] || icons.laptop;
 };
+
+window.getCircuitMember = function(id){
+
+    return window.CIRCUIT_TEAM.find(function(member){
+
+        return member.id === id;
+
+    });
+
+};

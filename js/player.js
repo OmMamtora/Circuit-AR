@@ -1,17 +1,45 @@
-const params = new URLSearchParams(window.location.search);
+// const params = new URLSearchParams(window.location.search);
 
-const id = params.get("id");
+// const id = params.get("id");
 
-const member = window.getCircuitMember(id);
+// const member = window.getCircuitMember(id);
 
-const video = document.getElementById("memberVideo");
+// const video = document.getElementById("memberVideo");
 
-const btn = document.getElementById("visitBtn");
+// const btn = document.getElementById("visitBtn");
 
-if(member){
+// if(member){
+
+//     video.src = `assets/video/${member.id}.mp4`;
+
+//     btn.href = `member.html?id=${member.id}`;
+
+// }
+
+document.addEventListener("DOMContentLoaded", () => {
+
+    const params = new URLSearchParams(window.location.search);
+
+    const id = params.get("id");
+
+    const member = window.getCircuitMember(id);
+
+    if (!member) {
+
+        document.body.innerHTML = "<h1>Member Not Found</h1>";
+
+        return;
+
+    }
+
+    const video = document.getElementById("memberVideo");
+
+    const btn = document.getElementById("visitBtn");
 
     video.src = `assets/video/${member.id}.mp4`;
 
-    btn.href = `member.html?id=${member.id}`;
+    video.play();
 
-}
+    btn.href = `https://amit123.onrender.com/member.html?id=${member.id}`;
+
+});

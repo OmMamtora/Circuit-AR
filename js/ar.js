@@ -217,8 +217,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const scanningOverlay = document.getElementById("scanning-overlay");
     const foundLayer = document.getElementById("found-layer");
     const foundLabel = document.getElementById("found-label");
+    const backBtn = document.getElementById("ar-back-btn");
 
     let html5QrCode = null;
+    let isScanning = false;
 
     // A scanned coaster's QR encodes the member's microsite URL, e.g.
     // ".../member.html?id=prachi&source=qr". We don't jump straight to that
@@ -252,6 +254,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         html5QrCode.stop().then(() => {
 
+            isScanning = false;
+
             setTimeout(() => {
 
                 if (member) {
@@ -273,6 +277,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function startScanner() {
 
+        scanningOverlay.style.display = "flex";
+        foundLayer.classList.remove("visible");
+
         html5QrCode = new Html5Qrcode("qr-reader");
 
         html5QrCode.start(
@@ -288,8 +295,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
             onScanFailure
 
-        );
+        ).then(() => {
+            isScanning = true;
+        }).catch(() => {
+            isScanning = false;
+        });
 
+    }
+
+    function stopScanner() {
+        if (!html5QrCode || !isScanning) return Promise.resolve();
+        isScanning = false;
+        return html5QrCode.stop().then(() => html5QrCode.clear()).catch(() => {});
     }
 
     activateBtn.addEventListener("click", () => {
@@ -301,5 +318,14 @@ document.addEventListener("DOMContentLoaded", () => {
         startScanner();
 
     });
+
+    if (backBtn) {
+        backBtn.addEventListener("click", () => {
+            stopScanner().finally(() => {
+                arStage.hidden = true;
+                activateScreen.hidden = false;
+            });
+        });
+    }
 
 });

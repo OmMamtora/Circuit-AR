@@ -204,6 +204,15 @@
 // });
 
 
+// ─────────────────────────────────────────────────────────────────────────
+// Circuit AR — QR scanner
+//
+// Job: scan a QR code → pull the member "id" out of the decoded value →
+// open our own player.html?id=... (which plays that member's intro video
+// and links out to their microsite). If the id can't be matched to anyone
+// on the team, we fall back to opening whatever the QR encoded directly,
+// so a scan never dead-ends.
+// ─────────────────────────────────────────────────────────────────────────
 const CONFIG = {
     REDIRECT_DELAY_MS: 800,
     OPEN_MODE: "same"
@@ -247,28 +256,36 @@ document.addEventListener("DOMContentLoaded", () => {
 
         foundLayer.classList.add("visible");
 
-        const memberId = extractMemberId(decodedText);
-        const member = memberId ? window.getCircuitMember(memberId) : null;
+        // Defensive: if data.js failed to load, or getCircuitMember isn't
+        // defined for any reason, we must NOT let that break the redirect.
+        let member = null;
+        try {
+            const memberId = extractMemberId(decodedText);
+            if (memberId && typeof window.getCircuitMember === "function") {
+                member = window.getCircuitMember(memberId) || null;
+            }
+        } catch (e) {
+            member = null;
+        }
 
-        foundLabel.innerHTML = member ? `${member.name} found!` : "QR Detected";
+        foundLabel.innerHTML = member ? `${member.name} found!` : "Coaster found — opening…";
 
-        html5QrCode.stop().then(() => {
-
+        const goToDestination = () => {
             isScanning = false;
+            if (member) {
+                window.location.href = `player.html?id=${encodeURIComponent(member.id)}`;
+            } else {
+                window.location.href = decodedText;
+            }
+        };
 
-            setTimeout(() => {
-
-                if (member) {
-                    // Known member — open our local video player first.
-                    window.location.href = `player.html?id=${encodeURIComponent(member.id)}`;
-                } else {
-                    // Unrecognised id or non-member QR — fall back to
-                    // whatever the QR encoded so we never dead-end.
-                    window.location.href = decodedText;
-                }
-
-            }, CONFIG.REDIRECT_DELAY_MS);
-
+        // Race the camera's stop() against a short timeout so a stuck
+        // camera teardown can never prevent the redirect from happening.
+        Promise.race([
+            html5QrCode.stop().catch(() => {}),
+            new Promise(resolve => setTimeout(resolve, 600))
+        ]).then(() => {
+            setTimeout(goToDestination, CONFIG.REDIRECT_DELAY_MS);
         });
 
     }

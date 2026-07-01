@@ -284,3 +284,57 @@ h1 span { color: var(--accent-color); }
   color: var(--accent-color);
   margin-bottom: 1rem;
 }
+
+
+/* ── Player Page (shown right after a successful scan) ──────────────────── */
+.player-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-height: 100svh;
+  padding: clamp(4rem, 8vw, 5rem) clamp(1rem, 5vw, 2.5rem) 2.5rem;
+}
+
+.player-video-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  aspect-ratio: 9 / 16;
+  max-height: 60svh;
+  margin: 0 auto 1.5rem;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #000;
+  border: 2px solid var(--accent-color);
+  box-shadow: 0 0 24px rgba(230, 184, 0, 0.25);
+}
+
+.player-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.player-unmute-btn {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  border: 1px solid var(--accent-color);
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+#player-name {
+  margin-top: 0;
+}

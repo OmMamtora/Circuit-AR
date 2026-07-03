@@ -1,45 +1,82 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#080907">
-    <title>Circuit AR</title>
-    <link rel="stylesheet" href="css/ar.css">
-    
-    <!-- Only include the A-Frame and MindAR scripts -->
-    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
-    
-    <style>
-        body, html, main { background: #080907 !important; color: #f4f4f2; }
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#050504">
+  <title>Amit Ke Circuits AR Poster</title>
+  
+  <link rel="stylesheet" href="css/ar.css">
+
+  <!-- Added MindAR and A-Frame Scripts back -->
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
+
+  <style>
+    /* Ensures MindAR camera feed is visible behind your UI */
+    #cameraStage { background-color: transparent !important; }
+    body, html, main, .ar-shell { background-color: transparent !important; }
+  </style>
 </head>
 <body>
-    <div class="ambient-grid" aria-hidden="true"></div>
-    <main>
-        <!-- ACTIVATE SCREEN -->
-        <section class="ar-activate" id="ar-activate">
-            <div class="ar-badge-preview">
-                <img src="assets/circuit-ar-badge.png" alt="Circuit AR Badge">
-            </div>
-            <p class="section-kicker">Activate AR ⚡</p>
-            <h1>Circuit AR<br><span>Experience</span></h1>
-            <p class="ar-copy">Point your camera at the coaster to see the magic instantly.</p>
-            <ol class="ar-steps">
-                <li><span>1.</span> Tap "Activate Circuit AR" and allow camera access.</li>
-                <li><span>2.</span> Point your phone at the AR Marker on any coaster.</li>
-                <li><span>3.</span> The profile video opens automatically.</li>
-            </ol>
-            <button class="button button-primary pulse" type="button" id="ar-activate-btn">Activate Circuit AR ⚡</button>
-            <p class="ar-status" id="ar-status" aria-live="polite"></p>
-        </section>
-        <!-- LIVE CAMERA STAGE -->
-        <div class="ar-stage" id="ar-stage" hidden>
-            <button type="button" class="ar-back-btn" id="ar-back-btn" style="position: absolute; z-index: 999;">← Cancel</button>
-        </div>
-    </main>
-    <script src="js/data.js"></script>
-    <script src="js/ar.js" defer></script>
+  <main class="ar-shell" id="introCard">
+    <!-- Intro / Activate Screen -->
+    <section class="intro-card">
+      <div class="brand"><span class="brand-bolt">⚡</span><span>Amit Ke Circuits</span></div>
+      <p class="kicker">IMAGE AR EXPERIENCE</p>
+      <h1>Scan Poster<br><span>For Magic</span></h1>
+      <p>Existing coaster/presentation image ko camera mein lao. Image detect hote hi vertical AR video start hoga.</p>
+      
+      <img class="poster-preview" src="assets/ar-poster-trigger.png" alt="Poster trigger preview">
+      
+      <div class="steps" aria-label="How to use">
+        <div class="step"><strong>1</strong><span>Allow camera access.</span></div>
+        <div class="step"><strong>2</strong><span>Coaster ya slide ki image square frame mein lao.</span></div>
+        <div class="step"><strong>3</strong><span>Image detect hote hi video start hoga.</span></div>
+      </div>
+      
+      <div class="button-row">
+        <button class="button button-primary" id="startCamera">START THE AR MAGIC</button>
+        <a class="button button-secondary" href="https://amit123.onrender.com">GO TO WEBSITE</a>
+      </div>
+    </section>
+  </main>
+
+  <!-- Camera Scanner UI -->
+  <section class="camera-stage" id="cameraStage" aria-live="polite">
+    <!-- QR camera feed removed because MindAR handles the camera automatically -->
+    <button class="close-camera" id="closeCamera" type="button" aria-label="Close camera">×</button>
+    <div class="camera-shade" aria-hidden="true"></div>
+    <div class="scanner-frame" id="scannerFrame" aria-hidden="true"></div>
+    <div class="status-panel">
+      <p class="status-title" id="statusTitle">Image Detector</p>
+      <p class="status-copy" id="statusCopy">Coaster ya presentation slide frame mein lao.</p>
+      <div class="progress" aria-hidden="true"><span id="scanProgress"></span></div>
+      <div class="button-row">
+        <a class="button button-secondary" href="https://amit123.onrender.com">GO TO WEBSITE</a>
+      </div>
+      <div class="scan-hint" id="scanHint">Video starts only after target image is detected</div>
+    </div>
+  </section>
+
+  <!-- Video Player UI -->
+  <section class="ar-video-layer" id="videoLayer" aria-live="polite">
+    <div class="video-card">
+      <video id="arVideo" playsinline controls>
+        <source src="assets/video/amit-ke-circuits-ar-promo.mp4" type="video/mp4">
+        Your browser does not support embedded video.
+      </video>
+      <div class="video-topline">
+        <span class="pill">AR Video Playing</span>
+        <span class="pill">Amit Ke Circuits</span>
+      </div>
+      <div class="after-actions" id="afterActions">
+        <button class="button button-secondary" id="muteVideo" type="button">Mute</button>
+        <button class="button button-primary" id="skipWebsite" type="button">Skip to Website</button>
+      </div>
+    </div>
+  </section>
+
+  <script src="js/ar.js" defer></script>
 </body>
 </html>

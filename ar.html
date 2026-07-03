@@ -1,15 +1,46 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8">
-    <title>AR Experience</title>
-    <link rel="stylesheet" href="css/style.css">
-    <script src="js/data.js"></script>
-    <script src="js/player.js" defer></script>
+  <meta charset="utf-8" />
+  <title>AR Experience</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+  <link rel="stylesheet" href="css/ar.css" />
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
+  <style>
+    body { margin: 0; overflow: hidden; }
+  </style>
 </head>
-
 <body>
-    <video id="memberVideo" controls autoplay playsinline width="100%"> </video>
-    <a id="visitBtn"> Visit Microsite → </a>
+  <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" vr-mode-ui="enabled: false">
+    <a-assets>
+      <video
+        id="memberVideo"
+        preload="auto"
+        loop="true"
+        playsinline
+        webkit-playsinline
+        crossorigin="anonymous"
+      ></video>
+    </a-assets>
+
+    <!-- Marker for tracking: 88mm = 0.088 meters -->
+    <a-marker id="kldMarker" type="pattern" url="assets/KLD_marker.patt" size="0.088">
+      <a-video
+        src="#memberVideo"
+        width="0.088"
+        height="0.088"
+        position="0 0 0"
+        rotation="-90 0 0"
+      ></a-video>
+    </a-marker>
+
+    <a-entity camera></a-entity>
+  </a-scene>
+
+  <a id="visitBtn" href="#" hidden>Visit Microsite &rarr;</a>
+
+  <script src="js/data.js"></script>
+  <script src="js/ar.js"></script>
 </body>
 </html>

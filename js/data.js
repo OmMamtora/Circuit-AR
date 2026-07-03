@@ -1,8 +1,3 @@
-// Optional media fields for every member:
-// photo: "assets/images/member-name.jpg",
-// videoUrl: "assets/videos/member-name.mp4",
-// videoPoster: "assets/images/member-name-video-poster.jpg"
-// Add a GA4 Measurement ID (for example, "G-ABC123XYZ") to enable the dashboard.
 window.CIRCUIT_GA_ID = "G-SPY1K894ND";
 window.CIRCUIT_TEAM = [
   {
